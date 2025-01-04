@@ -33,8 +33,8 @@ impl PathToHash {
 
     pub fn record_new_entry(&mut self, file_hash: &str, relative_filepath: &str) {
         self.entries.push(PathToHashEntry {
-            hash: file_hash.clone().to_string(),
-            relative_filepath: relative_filepath.clone().to_string()
+            hash: file_hash.to_string().clone().to_string(),
+            relative_filepath: relative_filepath.to_string().clone().to_string()
         });
     }
 

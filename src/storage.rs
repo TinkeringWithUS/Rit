@@ -4,8 +4,8 @@ use std::path::Path;
 // use std::path::Path;
 // use std::r::{Enumerate, Map};
 // for now, use a csv format
-use std::{fs, io, vec};
 use std::{fs::read_dir, path::PathBuf};
+use std::{io, vec};
 
 use std::collections::HashMap;
 
@@ -51,25 +51,25 @@ struct CommitLogEntry {
     message: String,
 }
 
-struct Commit {
-    hash: String,
-    diff_list: Vec<FileDifference>,
-}
+// struct Commit {
+//     hash: String,
+//     diff_list: Vec<FileDifference>,
+// }
 
-struct FileDifference {
-    file_hash: String,           // hash of previously commited file object
-    original_file_path: String,  // original relative file path
-    changed_file_path: String,   // used if file was moved or renamed
-    obj_path: String,            // zipped, committed file object path
-    differences: Vec<DiffRange>, // stores ranges of changes
-}
+// struct FileDifference {
+//     file_hash: String,           // hash of previously commited file object
+//     original_file_path: String,  // original relative file path
+//     changed_file_path: String,   // used if file was moved or renamed
+//     obj_path: String,            // zipped, committed file object path
+//     differences: Vec<DiffRange>, // stores ranges of changes
+// }
 
-struct DiffRange {
-    starting_line: u32, // inclusive
-    ending_line: u32,   // inclusive
-    changed_lines: Vec<String>,
-    change_type: ChangeType,
-}
+// struct DiffRange {
+//     starting_line: u32, // inclusive
+//     ending_line: u32,   // inclusive
+//     changed_lines: Vec<String>,
+//     change_type: ChangeType,
+// }
 
 pub fn read_metadata() -> Option<RitMetadata> {
     let found_metadata_folder = search_for_metadata_folder();
@@ -121,7 +121,12 @@ pub fn read_metadata() -> Option<RitMetadata> {
 }
 
 pub fn add_files(path: PathBuf, added_files: &mut Vec<PathBuf>) {
-    if path.is_dir() {
+    // TODO: read from a file
+    let directories_to_ignore = vec![".rit", ".vscode", ".git"];
+
+    let file_name = path.file_name().unwrap().to_str().unwrap();
+
+    if path.is_dir() && !directories_to_ignore.contains(&file_name) {
         let subdir_entries = read_dir(path).unwrap();
 
         for dir_entry in subdir_entries {
@@ -213,15 +218,20 @@ pub fn record_added_files(
                 return false;
             }
 
-            metadata
-                .path_to_hash_objs
-                .record_path_to_hashes(&metadata.meta_data_folder_path);
+            println!(
+                "record new entry, file path: {}",
+                file_path_to_add.to_str().unwrap()
+            );
 
             metadata
                 .path_to_hash_objs
                 .record_new_entry(&zipped_file_hash_str, file_path_to_add.to_str().unwrap());
         }
     }
+
+    metadata
+        .path_to_hash_objs
+        .record_path_to_hashes(&metadata.meta_data_folder_path);
 
     return true;
 }
