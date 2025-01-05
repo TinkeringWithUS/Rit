@@ -1,11 +1,11 @@
 use std::fs::File;
 use std::path::Path;
-use zip::write::{ExtendedFileOptions, FileOptions, SimpleFileOptions};
+use zip::write::{ExtendedFileOptions, FileOptions};
 use zip::ZipWriter;
 
-use std::io::{BufRead, Read, Write};
+use std::io::{Read, Write};
 
-use std::{fs, fs::read_dir, io, path::PathBuf};
+use std::{fs, fs::read_dir, path::PathBuf};
 
 pub fn zip_file(zipped_filepath: &Path, filepath_to_zip: &str) -> bool {
     let new_archive_result = File::create(zipped_filepath);

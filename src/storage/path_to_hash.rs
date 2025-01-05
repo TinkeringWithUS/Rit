@@ -25,13 +25,13 @@ impl PathToHash {
     }
 
     // use hashmap no?
-    pub fn record_new_entries(&mut self, new_entries: Vec<PathToHashEntry>) {
+    pub fn add_new_entries(&mut self, new_entries: Vec<PathToHashEntry>) {
         for new_entry in &new_entries {
-            self.record_new_entry(&new_entry.hash, &new_entry.relative_filepath);
+            self.add_new_entry(&new_entry.hash, &new_entry.relative_filepath);
         }
     }
 
-    pub fn record_new_entry(&mut self, file_hash: &str, relative_filepath: &str) {
+    pub fn add_new_entry(&mut self, file_hash: &str, relative_filepath: &str) {
         self.entries.push(PathToHashEntry {
             hash: file_hash.to_string().clone().to_string(),
             relative_filepath: relative_filepath.to_string().clone().to_string()
@@ -49,7 +49,7 @@ impl PathToHash {
         return Option::None;
     }
 
-    pub fn get_relative_filepath(&mut self, file_hash: &str) -> Option<&str> {
+    pub fn get_relative_filepath(&self, file_hash: &str) -> Option<&str> {
         for entry in &self.entries {
             if entry.hash == file_hash {
                 // return Option::Some(&entry.hash);
@@ -72,8 +72,6 @@ impl PathToHashEntry {
         }
 
         let content = format!("{} {}\n", self.hash, self.relative_filepath);
-
-        println!("content: {}", content);
 
         let mut log_writer = path_to_hashes_log.unwrap();
 

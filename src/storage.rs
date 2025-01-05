@@ -1,10 +1,10 @@
 // use std::fmt::format;
-use std::fs::File;
+use std::fs::{self, File};
 use std::path::Path;
 // use std::path::Path;
 // use std::r::{Enumerate, Map};
 // for now, use a csv format
-use std::{fs::read_dir, path::PathBuf};
+use std::path::PathBuf;
 use std::{io, vec};
 
 use std::collections::HashMap;
@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::io::{BufRead, Read};
 
 mod path_to_hash;
-mod utils;
+pub mod utils;
 
 use path_to_hash::init_path_to_obj_hash_file;
 use path_to_hash::PathToHash;
@@ -44,6 +44,7 @@ pub struct RitMetadata {
     pub current_commit_id: String,
     pub commit_log: Vec<CommitLogEntry>,
     pub path_to_hash_objs: PathToHash,
+    pub filename_patterns_to_ignore: Vec<String>,
 }
 
 struct CommitLogEntry {
@@ -115,28 +116,29 @@ pub fn read_metadata() -> Option<RitMetadata> {
         current_commit_id: "0".to_string(),
         commit_log,
         path_to_hash_objs: path_to_hash_objs.unwrap(),
+        filename_patterns_to_ignore: read_ignore_file(Path::new(metadata_folder_path_str)),
     };
 
     return Option::Some(metadata);
 }
 
-pub fn add_files(path: PathBuf, added_files: &mut Vec<PathBuf>) {
-    // TODO: read from a file
-    let directories_to_ignore = vec![".rit", ".vscode", ".git"];
+fn read_ignore_file(metadata_folder_path: &Path) -> Vec<String> {
+    let mut dir_to_add_buf = metadata_folder_path.parent().unwrap().to_path_buf();
 
-    let file_name = path.file_name().unwrap().to_str().unwrap();
+    dir_to_add_buf.push(".ritignore");
 
-    if path.is_dir() && !directories_to_ignore.contains(&file_name) {
-        let subdir_entries = read_dir(path).unwrap();
+    let file_contents = fs::read_to_string(dir_to_add_buf);
 
-        for dir_entry in subdir_entries {
-            let dir_entry_path = dir_entry.unwrap().path();
-
-            add_files(dir_entry_path, added_files);
-        }
-    } else if path.is_file() {
-        added_files.push(path);
+    // can silently ignore error
+    if !file_contents.is_err() {
+        return file_contents
+            .unwrap()
+            .lines()
+            .map(|line| line.to_string())
+            .collect();
     }
+
+    return vec![];
 }
 
 // metadata_folder_path should be a relative path
@@ -166,8 +168,6 @@ pub fn record_added_files(
             return false;
         }
 
-        let filename_to_add = file_path_to_add.file_name().unwrap().to_str().unwrap();
-
         if !read_file(file_path_to_add.to_str().unwrap(), &mut buffer) {
             println!("!read file");
             return false;
@@ -183,13 +183,11 @@ pub fn record_added_files(
             return false;
         }
 
-        println!(
-            "found file in recursive dir search, file obj path: {}, filename: {}",
-            file_obj_path, filename_to_add
-        );
+        let filename_to_add = file_path_to_add.file_name().unwrap().to_str().unwrap();
 
         let found_file = recursive_dir_search(&file_obj_path, filename_to_add, false);
 
+        // TODO: basically add new files / changed files
         if found_file.is_none() {
             // create the zipped file and zip
             let zipped_file_hash = hash_file(file_path_to_add.to_str().unwrap());
@@ -225,8 +223,8 @@ pub fn record_added_files(
 
             metadata
                 .path_to_hash_objs
-                .record_new_entry(&zipped_file_hash_str, file_path_to_add.to_str().unwrap());
-        }
+                .add_new_entry(&zipped_file_hash_str, file_path_to_add.to_str().unwrap());
+        } 
     }
 
     metadata

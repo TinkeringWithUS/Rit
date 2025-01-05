@@ -1,0 +1,6 @@
+target
+*.txt
+*.vscode
+.vscode
+.rit
+.git

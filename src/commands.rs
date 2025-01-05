@@ -1,14 +1,15 @@
 use std::{
-    fs::{self, read_dir},
-    io::{self, BufRead},
+    fs::{self},
+    io::{self, stdout, BufRead, Write},
     path::{Path, PathBuf},
     process::exit,
-    vec,
 };
 
-use crate::storage::{
-    add_files, read_metadata, record_added_files, search_for_metadata_folder, RitMetadata,
-};
+mod add;
+
+use add::add_command;
+
+use crate::storage::{read_metadata, search_for_metadata_folder, RitMetadata};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CommandType {
@@ -61,7 +62,9 @@ pub fn execute_command(command: &CommandType, command_args: Vec<String>) -> Opti
 fn nuke_command() {
     let stdin = io::stdin();
 
-    println!("ARE YOU SURE? Y/N: ");
+    print!("ARE YOU SURE? Y/N: ");
+    // flush to ensure print statement appears in correct order
+    let _ = stdout().flush();
 
     let mut user_input = String::new();
 
@@ -77,45 +80,6 @@ fn nuke_command() {
         println!("Nuking .rit");
         let _ = fs::remove_dir_all(metadata_folder_path.unwrap());
     }
-}
-
-fn add_command(metadata: &mut RitMetadata, command_args: Vec<String>) {
-    let directories_to_ignore = vec!["target", ".vscode"];
-
-    let metadata_folder_path = search_for_metadata_folder();
-
-    if metadata_folder_path.is_none() {
-        return;
-    }
-
-    let mut files_to_add: Vec<PathBuf> = Vec::new();
-
-    // for now, only handle .
-    for (_, command_arg) in command_args.iter().enumerate() {
-        if command_arg == "." {
-            let entries = read_dir(command_arg).unwrap();
-
-            for entry in entries {
-                // entry?.path().is_dir();
-                let entry_path = entry.unwrap().path();
-
-                if !directories_to_ignore
-                    .contains(&entry_path.file_name().unwrap().to_str().unwrap())
-                {
-                    add_files(entry_path, &mut files_to_add);
-                }
-            }
-        }
-    }
-
-    for path in &files_to_add {
-        println!("added file: {:?}", path);
-    }
-
-    let binding = metadata_folder_path.unwrap();
-    let metadata_path_str = binding.to_str().unwrap();
-
-    record_added_files(metadata, metadata_path_str, &files_to_add);
 }
 
 fn init_metadata() -> Option<PathBuf> {
