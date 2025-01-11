@@ -1,15 +1,12 @@
-// use std::fmt::format;
 use std::fs::{self, File};
 use std::path::Path;
-// use std::path::Path;
-// use std::r::{Enumerate, Map};
 // for now, use a csv format
 use std::path::PathBuf;
+use std::time::Instant;
 use std::{io, vec};
 
 use std::collections::HashMap;
 
-// use std::io::{BufRead, Write};
 use std::io::{BufRead, Read};
 
 mod path_to_hash;
@@ -153,13 +150,17 @@ pub fn record_added_files(
         return false;
     }
 
-    println!(
-        "metadata folder path in record added files: {}",
-        metadata_folder_path
-    );
+    let file_obj_path = format!("{}/objs/", metadata_folder_path);
+    if !create_folder(&file_obj_path) {
+        println!(
+            "Creating obj folder failed in record added files obj path: {}",
+            &file_obj_path
+        );
+        return false;
+    }
 
-    let mut buffer = Vec::new();
-
+    let now = Instant::now();
+    
     for file_path_to_add in file_paths_to_add {
         println!("file path in record added files: {:?}", file_path_to_add);
 
@@ -168,70 +169,76 @@ pub fn record_added_files(
             return false;
         }
 
-        if !read_file(file_path_to_add.to_str().unwrap(), &mut buffer) {
-            println!("!read file");
-            return false;
-        }
-
-        let file_obj_path = format!("{}/objs/", metadata_folder_path);
-
-        if !create_folder(&file_obj_path) {
-            println!(
-                "Creating obj folder failed in record added files obj path: {}",
-                &file_obj_path
-            );
-            return false;
-        }
-
         let filename_to_add = file_path_to_add.file_name().unwrap().to_str().unwrap();
 
         let found_file = recursive_dir_search(&file_obj_path, filename_to_add, false);
 
-        // TODO: basically add new files / changed files
+        // adds new files / changed files / or moved files
+        // TODO: update path to hash log.txt when files moves, since we
+        // don't modify it
         if found_file.is_none() {
             // create the zipped file and zip
-            let zipped_file_hash = hash_file(file_path_to_add.to_str().unwrap());
-
-            if zipped_file_hash.is_none() {
-                println!("zipped_file_hash is none");
-                return false;
-            }
-
-            let zipped_file_hash_str = zipped_file_hash.unwrap();
-
-            let new_zipped_file = create_file(&zipped_file_hash_str, &file_obj_path);
-
-            if new_zipped_file.is_none() {
-                println!("new_zipped_file is none");
-                return false;
-            }
-
-            let zipped_filepath_str =
-                format!("{}/objs/{}", metadata_folder_path, zipped_file_hash_str);
-
-            let zipped_filepath = Path::new(&zipped_filepath_str);
-
-            if !zip_file(&zipped_filepath, file_path_to_add.to_str().unwrap()) {
-                println!("!zip_file");
-                return false;
-            }
-
-            println!(
-                "record new entry, file path: {}",
-                file_path_to_add.to_str().unwrap()
+            let zipped_file_hash_str = create_zip_archive(
+                &file_path_to_add.to_str().unwrap().to_string(),
+                &file_obj_path,
+                metadata_folder_path,
             );
 
-            metadata
-                .path_to_hash_objs
-                .add_new_entry(&zipped_file_hash_str, file_path_to_add.to_str().unwrap());
-        } 
+            if zipped_file_hash_str.is_none() {
+                return false;
+            }
+
+            metadata.path_to_hash_objs.add_new_entry(
+                &zipped_file_hash_str.unwrap(),
+                file_path_to_add.to_str().unwrap(),
+            );
+        }
     }
 
     metadata
         .path_to_hash_objs
         .record_path_to_hashes(&metadata.meta_data_folder_path);
 
+    let elapsed = now.elapsed();
+
+    println!("record add files, elapsed time: {:?}", elapsed);
+
     return true;
+}
+
+fn create_zip_archive(
+    file_path_to_add: &String,
+    file_obj_path: &String,
+    metadata_folder_path: &str,
+) -> Option<String> {
+    let zipped_file_hash = hash_file(file_path_to_add);
+
+    if zipped_file_hash.is_none() {
+        println!("zipped_file_hash is none");
+        return Option::None;
+    }
+
+    let zipped_file_hash_str = zipped_file_hash.unwrap();
+
+    let new_zipped_file = create_file(&zipped_file_hash_str, &file_obj_path);
+
+    if new_zipped_file.is_none() {
+        println!("new_zipped_file is none");
+        return Option::None;
+    }
+
+    let zipped_filepath_str = format!("{}/objs/{}", metadata_folder_path, zipped_file_hash_str);
+
+    let zipped_filepath = Path::new(&zipped_filepath_str);
+
+    if !zip_file(&zipped_filepath, file_path_to_add) {
+        println!("!zip_file");
+        return Option::None;
+    }
+
+    println!("record new entry, file path: {}", file_path_to_add);
+
+    return Option::Some(zipped_file_hash_str);
 }
 
 fn read_file(filepath_to_read: &str, buffer: &mut Vec<u8>) -> bool {

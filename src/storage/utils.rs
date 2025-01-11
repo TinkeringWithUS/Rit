@@ -62,7 +62,7 @@ pub fn zip_file(zipped_filepath: &Path, filepath_to_zip: &str) -> bool {
     return true;
 }
 
-pub fn hash_file(filepath: &str) -> Option<String> {
+pub fn hash_file(filepath: &String) -> Option<String> {
     let file = fs::read(filepath);
 
     if file.is_ok() {

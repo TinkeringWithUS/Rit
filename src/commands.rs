@@ -6,8 +6,10 @@ use std::{
 };
 
 mod add;
+mod commit;
 
 use add::add_command;
+use commit::commit_command;
 
 use crate::storage::{read_metadata, search_for_metadata_folder, RitMetadata};
 
@@ -48,6 +50,7 @@ pub fn execute_command(command: &CommandType, command_args: Vec<String>) -> Opti
             return Option::None;
         }
         CommandType::Commit => {
+            commit_command(); 
             return Option::None;
         }
         CommandType::Remove => {

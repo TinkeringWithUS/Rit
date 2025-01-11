@@ -2,13 +2,12 @@
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
-// use std::path::Path;
-// use std::r::{Enumerate, Map};
 // for now, use a csv format
 use std::{fs, vec};
 
-// use std::io::{BufRead, Write};
-
+// TODO:
+// use 2 hashmaps mapping hash -> entry and path -> entry?
+// or just hash -> path and path -> hash
 pub struct PathToHash {
     entries: Vec<PathToHashEntry>,
 }
@@ -25,16 +24,10 @@ impl PathToHash {
     }
 
     // use hashmap no?
-    pub fn add_new_entries(&mut self, new_entries: Vec<PathToHashEntry>) {
-        for new_entry in &new_entries {
-            self.add_new_entry(&new_entry.hash, &new_entry.relative_filepath);
-        }
-    }
-
     pub fn add_new_entry(&mut self, file_hash: &str, relative_filepath: &str) {
         self.entries.push(PathToHashEntry {
             hash: file_hash.to_string().clone().to_string(),
-            relative_filepath: relative_filepath.to_string().clone().to_string()
+            relative_filepath: relative_filepath.to_string().clone().to_string(),
         });
     }
 
@@ -64,10 +57,13 @@ impl PathToHashEntry {
     pub fn record_hash_entry(&self, metadata_folder_path: &str) {
         let log_path = format!("{}/path_to_hash.txt", metadata_folder_path);
 
-        let path_to_hashes_log  = OpenOptions::new().append(true).open(log_path);
+        let path_to_hashes_log = OpenOptions::new().append(true).open(log_path);
 
         if path_to_hashes_log.is_err() {
-            println!("Failed to open path to hashes log: {:?}", path_to_hashes_log);
+            println!(
+                "Failed to open path to hashes log: {:?}",
+                path_to_hashes_log
+            );
             return;
         }
 

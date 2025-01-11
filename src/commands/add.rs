@@ -76,7 +76,7 @@ fn only_add_changed_file(metadata: &RitMetadata, path: &Path, added_files: &mut 
     let path_str = path.to_str().unwrap();
 
     if path.is_file() {
-        let file_hash = hash_file(path.to_str().unwrap()).unwrap();
+        let file_hash = hash_file(&path.to_str().unwrap().to_string()).unwrap();
 
         let previous_relative_path_option =
             metadata.path_to_hash_objs.get_relative_filepath(&file_hash);
