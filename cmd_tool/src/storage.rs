@@ -10,6 +10,8 @@ use std::collections::HashMap;
 use std::io::{BufRead, Read};
 
 mod path_to_hash;
+
+// exposes storage utils for rest of project to use
 pub mod utils;
 
 use path_to_hash::init_path_to_obj_hash_file;
